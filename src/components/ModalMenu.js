@@ -68,7 +68,7 @@ export default function ModalMenu() {
         Choose Event Category
       </Button>
       <StyledMenu
-        c
+        
         id="customized-menu"
         anchorEl={anchorEl}
         keepMounted
