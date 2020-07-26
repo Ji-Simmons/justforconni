@@ -1,42 +1,59 @@
 import React, { Component } from "react";
 import BigCalendar from "react-big-calendar";
 import moment from "moment";
+import ModalMenu from "./ModalMenu";
 import Dialog from "material-ui/Dialog";
 import FlatButton from "material-ui/FlatButton";
 import TextField from "material-ui/TextField";
 import TimePicker from "material-ui/TimePicker";
+import "../App.css";
 require("react-big-calendar/lib/css/react-big-calendar.css");
+
 
 BigCalendar.momentLocalizer(moment);
 
-class Calendar extends Component {
+export default class Calendar extends Component {
+  
   constructor() {
     super();
     this.state = {
       events: [],
+      category: "",
       title: "",
       start: "",
       end: "",
       desc: "",
       openSlot: false,
       openEvent: false,
+      eventList: "",
+      editForm: "",
       clickedEvent: {}
     };
     this.handleClose = this.handleClose.bind(this);
   }
 
-  // componentDidMount(){
-  //     this.getCachedEvents();
-  // }
-
-  // getCachedEvents(){
-  //   const cachedEvents = localStorage.getItem("cachedEvents");
-  //   console.log("Cached Events", JSON.parse(cachedEvents));
-  //   if(cachedEvents){
-  //       this.setState({events: JSON.parse(cachedEvents)})
-  //   }
-  //   return;
-  // }
+  getEvent = () => {
+    //fetch('https://helio-calendar-api.herokuapp.com/api/events')
+    fetch("http://localhost:5656/api/events")
+      .then((response) => {
+        return response.json();
+      })
+      .then((data) => {
+        console.log("data from api: ", data);
+        this.setState({
+          events: data,
+          eventList: data.map((item) => {
+            return (
+              <li key={item._id} id={item._id} onClick={this.updateEvent}>
+                {item.title || "Unknown"}
+              </li>
+            );
+          }),
+          editForm: "",
+        });
+      })
+      .catch();
+  };
 
   //closes modals
   handleClose() {
@@ -47,6 +64,7 @@ class Calendar extends Component {
   handleSlotSelected(slotInfo) {
     console.log("Real slotInfo", slotInfo);
     this.setState({
+      category: "",
       title: "",
       desc: "",
       start: slotInfo.start,
@@ -63,8 +81,13 @@ class Calendar extends Component {
       start: event.start,
       end: event.end,
       title: event.title,
-      desc: event.desc
+      desc: event.desc,
+      category: event.category
     });
+  }
+
+  setCategory(e) {
+    this.setState({ category: e });
   }
 
   setTitle(e) {
@@ -84,40 +107,108 @@ class Calendar extends Component {
   };
 
   // Onclick callback function that pushes new appointment into events array.
-  setNewAppointment() {
-    const { start, end, title, desc } = this.state;
-    let appointment = { title, start, end, desc };
+  setNewAppointment(event) {
+    const { start, category, end, title, desc } = this.state;
+    let appointment = { title, category, start, end, desc };
     let events = this.state.events.slice();
     events.push(appointment);
-    // localStorage.setItem("cachedEvents", JSON.stringify(events));
-    this.setState({ events });
-  }
+    event.preventDefault();
+        // and some other stuff
+		let route = `http://localhost:5656/api/tasks`;
+		//let route = `https://helio-calendar-api.herokuapp.com/api/events`;
+        let options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(this.state),
+        };
+        fetch(route, options)
+        .then((res) => { return res.json()})
+        .then((data) =>
+        {
+            console.log('should have added a new task: ', data);
+            this.context.getTasks();
+        })
+        .catch((err) =>
+        {
+            console.log('might not have added a new task: ', err);
+        })
+	};
+  
 
   //  Updates Existing Appointments Title and/or Description
-  updateEvent() {
-    const { title, desc, start, end, events, clickedEvent } = this.state;
+  updateEvent = (event) => {
+    const { title, category, desc, start, end, events, clickedEvent } = this.state;
     const index = events.findIndex(event => event === clickedEvent);
     const updatedEvent = events.slice();
+    updatedEvent[index].category = category;
     updatedEvent[index].title = title;
     updatedEvent[index].desc = desc;
     updatedEvent[index].start = start;
     updatedEvent[index].end = end;
-    // localStorage.setItem("cachedEvents", JSON.stringify(updatedEvent));
-    this.setState({
-      events: updatedEvent
-    });
+    event.preventDefault();
+		console.log('first state: ', this.state);
+		// and some other stuff
+		let route = 'http://localhost:5656/api/events';
+		//let route = 'https://helio-calendar-api.herokuapp.com/api/events';
+		// we need the _id in state to make stuff work but we don't actually want to submit it
+		let submitData = { ...this.state };
+		delete submitData._id;
+		let fetchOptions = {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(submitData)
+		};
+		if (this.state._id !== 'new') {
+			fetchOptions.method = 'PUT';
+			route += `/${this.state._id}`;
+		}
+		// send all of the state data to the update list api endpoint
+		console.log('state: ', this.state);
+		console.log('route: ', route);
+		console.log('fetchOptions: ', fetchOptions);
+		fetch(route, fetchOptions)
+			.then((data) => {
+				return data.json();
+			})
+			.then((result) => {
+				// call get lists again to update my app
+				console.log('result: ', result);
+				this.context.getLists();
+			})
+			.catch((err) => {
+				console.log('Error updating/creating list: ', err);
+			});
   }
 
   //  filters out specific event that is to be deleted and set that variable to state
-  deleteEvent() {
+  deleteEvent = (event) => {
     let updatedEvents = this.state.events.filter(
       event => event["start"] !== this.state.start
     );
-    // localStorage.setItem("cachedEvents", JSON.stringify(updatedEvents));
-    this.setState({ events: updatedEvents });
-  }
+    console.log('deleting...');
+		event.preventDefault();
+		let id = event.target.getAttribute('id');
+		console.log('id: ', id);
+		let fetchOptions = {
+			method: 'DELETE'
+		};
+		fetch(`http://localhost:5656/api/events/${id}`, fetchOptions)
+		//fetch(`https://helio-calendar-api.herokuapp.com/api/lists/${id}`, fetchOptions)
+			.then((response) => {
+				return response.json();
+			})
+			.then((data) => {
+				console.log('response from api: ', data);
+				this.getEvents();
+			})
+			.catch();
+  };
+  
 
   render() {
+    
     console.log("render()");
     const eventActions = [
       <FlatButton
@@ -131,16 +222,15 @@ class Calendar extends Component {
         secondary={true}
         keyboardFocused={true}
         onClick={() => {
-          this.deleteEvent(), this.handleClose();
+          this.deleteEvent(); this.handleClose();
         }}
       />,
       <FlatButton
         label="Confirm Edit"
         primary={true}
         keyboardFocused={true}
-        onClick={this.handleClose}
         onClick={() => {
-          this.updateEvent(), this.handleClose();
+          this.updateEvent(); this.handleClose();
         }}
       />
     ];
@@ -151,7 +241,7 @@ class Calendar extends Component {
         primary={true}
         keyboardFocused={true}
         onClick={() => {
-          this.setNewAppointment(), this.handleClose();
+          this.setNewAppointment(); this.handleClose();
         }}
       />
     ];
@@ -179,10 +269,17 @@ class Calendar extends Component {
           open={this.state.openSlot}
           onRequestClose={this.handleClose}
         >
+          
+          <div>
+
+     <ModalMenu />
+      
+    </div>
+            <br />
           <TextField
             floatingLabelText="Title"
             onChange={e => {
-              this.setTitle(e.target.value);
+              this.setc(e.target.value);
             }}
           />
           <br />
@@ -250,8 +347,8 @@ class Calendar extends Component {
           />
         </Dialog>
       </div>
-    );
+    )
   }
 }
 
-export default Calendar;
+
