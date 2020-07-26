@@ -68,7 +68,7 @@ export default function ModalMenu() {
         Choose Event Category
       </Button>
       <StyledMenu
-         className="k-animation-container"
+        
         id="customized-menu"
         anchorEl={anchorEl}
         keepMounted
