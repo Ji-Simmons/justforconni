@@ -68,15 +68,13 @@ export default function ModalMenu() {
         Choose Event Category
       </Button>
       <StyledMenu
-        
         id="customized-menu"
         anchorEl={anchorEl}
         keepMounted
         open={Boolean(anchorEl)}
         onClose={handleClose}
       >
-        <StyledMenuItem>
-        </StyledMenu>
+        <StyledMenuItem >
           <NotificationImportantIcon >
             <NotificationImportantIcon fontSize="small" />
           </NotificationImportantIcon>
