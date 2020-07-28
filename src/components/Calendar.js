@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import BigCalendar from "react-big-calendar";
 import moment from "moment";
+import axios from 'axios';
 import ModalMenu from "./ModalMenu";
 import Dialog from "material-ui/Dialog";
 import FlatButton from "material-ui/FlatButton";
@@ -32,36 +33,41 @@ export default class Calendar extends Component {
     this.handleClose = this.handleClose.bind(this);
   }
 
-  getEvent = () => {
-    //fetch('https://helio-calendar-api.herokuapp.com/api/events')
-    fetch("http://localhost:5656/api/events")
+  componentDidMount(){
+        this.getEvents();
+  }
+
+  // getCachedEvents(){
+  //   const cachedEvents = localStorage.getItem("cachedEvents");
+  //   console.log("Cached Events", JSON.parse(cachedEvents));
+  //   if(cachedEvents){
+  //       this.setState({events: JSON.parse(cachedEvents)})
+  //   }
+  //   return;
+  // }
+
+  getEvents = () => {
+    //axios
+    fetch('http://localhost:5656/api/events')
+    //.get("http://localhost:5656/api/events")
       .then((response) => {
         return response.json();
       })
       .then((data) => {
         console.log("data from api: ", data);
         this.setState({
-          events: data,
-          eventList: data.map((item) => {
-            return (
-              <li key={item._id} id={item._id} onClick={this.updateEvent}>
-                {item.title || "Unknown"}
-              </li>
-            );
-          }),
-          editForm: "",
-        });
-      })
-      .catch();
-  };
+          events: data   
+        })})
+      .catch(error => console.log(error))   
+  }
 
   //closes modals
-  handleClose() {
-    this.setState({ openEvent: false, openSlot: false });
+  handleClose = () => {
+    this.setState({ openEvent: false, openSlot: false })
   }
 
   //  Allows user to click on calendar slot and handles if appointment exists
-  handleSlotSelected(slotInfo) {
+  handleSlotSelected = (slotInfo) => {
     console.log("Real slotInfo", slotInfo);
     this.setState({
       category: "",
@@ -73,7 +79,7 @@ export default class Calendar extends Component {
     });
   }
 
-  handleEventSelected(event) {
+  handleEventSelected = (event) => {
     console.log("event", event);
     this.setState({
       openEvent: true,
@@ -86,7 +92,7 @@ export default class Calendar extends Component {
     });
   }
 
-  setCategory(e) {
+  setCategory = (e) => {
     this.setState({ category: e });
   }
 
@@ -112,9 +118,9 @@ export default class Calendar extends Component {
     let appointment = { title, category, start, end, desc };
     let events = this.state.events.slice();
     events.push(appointment);
-    event.preventDefault();
+   
         // and some other stuff
-		let route = `http://localhost:5656/api/tasks`;
+		let route = `http://localhost:5656/api/events`;
 		//let route = `https://helio-calendar-api.herokuapp.com/api/events`;
         let options = {
             method: 'POST',
@@ -127,12 +133,12 @@ export default class Calendar extends Component {
         .then((res) => { return res.json()})
         .then((data) =>
         {
-            console.log('should have added a new task: ', data);
-            this.context.getTasks();
+            console.log('should have added a new event: ', data);
+            this.context.getEvent();
         })
         .catch((err) =>
         {
-            console.log('might not have added a new task: ', err);
+            console.log('might not have added a new event: ', err);
         })
 	};
   
@@ -175,21 +181,22 @@ export default class Calendar extends Component {
 			.then((result) => {
 				// call get lists again to update my app
 				console.log('result: ', result);
-				this.context.getLists();
+				this.context.getEvents();
 			})
 			.catch((err) => {
-				console.log('Error updating/creating list: ', err);
+				console.log('Error updating/creating event: ', err);
 			});
   }
 
   //  filters out specific event that is to be deleted and set that variable to state
-  deleteEvent = (event) => {
+  deleteEvent = (e, event) => {
+    e.preventDefault();
     let updatedEvents = this.state.events.filter(
       event => event["start"] !== this.state.start
     );
     console.log('deleting...');
-		event.preventDefault();
-		let id = event.target.getAttribute('id');
+		
+		let id = this.state.clickedEvent._id
 		console.log('id: ', id);
 		let fetchOptions = {
 			method: 'DELETE'
@@ -201,7 +208,8 @@ export default class Calendar extends Component {
 			})
 			.then((data) => {
 				console.log('response from api: ', data);
-				this.getEvents();
+        this.getEvents();
+        this.handleClose();
 			})
 			.catch();
   };
@@ -221,8 +229,9 @@ export default class Calendar extends Component {
         label="Delete"
         secondary={true}
         keyboardFocused={true}
-        onClick={() => {
-          this.deleteEvent(); this.handleClose();
+        onClick={(e) => {
+        //  this.deleteEvent(), this.handleClose();
+        this.deleteEvent(e)
         }}
       />,
       <FlatButton
@@ -230,7 +239,7 @@ export default class Calendar extends Component {
         primary={true}
         keyboardFocused={true}
         onClick={() => {
-          this.updateEvent(); this.handleClose();
+          this.updateEvent(), this.handleClose();
         }}
       />
     ];
@@ -241,7 +250,7 @@ export default class Calendar extends Component {
         primary={true}
         keyboardFocused={true}
         onClick={() => {
-          this.setNewAppointment(); this.handleClose();
+          this.setNewAppointment(), this.handleClose();
         }}
       />
     ];
@@ -261,6 +270,7 @@ export default class Calendar extends Component {
 
         {/* Material-ui Modal for booking new appointment */}
         <Dialog
+          
           title={`Book an appointment on ${moment(this.state.start).format(
             "MMMM Do YYYY"
           )}`}
@@ -272,14 +282,18 @@ export default class Calendar extends Component {
           
           <div>
 
-     <ModalMenu />
+     <ModalMenu 
+        onChange={e => {
+          this.setCategory(e.target.value);
+        }}
+     />
       
     </div>
             <br />
           <TextField
             floatingLabelText="Title"
             onChange={e => {
-              this.setc(e.target.value);
+              this.setTitle(e.target.value);
             }}
           />
           <br />
@@ -292,14 +306,14 @@ export default class Calendar extends Component {
           <TimePicker
             format="ampm"
             floatingLabelText="Start Time"
-            minutesStep={5}
+            minutesStep={1}
             value={this.state.start}
             onChange={this.handleStartTime}
           />
           <TimePicker
             format="ampm"
             floatingLabelText="End Time"
-            minutesStep={5}
+            minutesStep={1}
             value={this.state.end}
             onChange={this.handleEndTime}
           />
@@ -315,6 +329,12 @@ export default class Calendar extends Component {
           open={this.state.openEvent}
           onRequestClose={this.handleClose}
         >
+          <ModalMenu 
+            defaultValue={this.state.category}
+            onChange={e => {
+              this.setCategory(e.target.value);
+            }}
+          />
           <TextField
             defaultValue={this.state.title}
             floatingLabelText="Title"

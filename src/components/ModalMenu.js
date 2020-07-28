@@ -46,14 +46,15 @@ const StyledMenuItem = withStyles((theme) => ({
 }))(MenuItem);
 
 export default function ModalMenu() {
-  const [anchorEl, setAnchorEl] = React.useState(null);
+  const [anchorEl, setAnchorEl] = React.useState();
 
   const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
+    setAnchorEl(event.currentTarget.value);
   };
 
   const handleClose = () => {
-    setAnchorEl(null);
+    //setAnchorEl(null);
+    
   };
 
   return (
@@ -63,48 +64,52 @@ export default function ModalMenu() {
         aria-haspopup="true"
         variant="contained"
         color="primary"
-        onClick={handleClick}
+        id="category"
+        onClick={((e) => handleClick(e.target.primary))}
       >
         Choose Event Category
       </Button>
       <StyledMenu
+        style={{ zIndex: 1500 }}
         id="customized-menu"
         anchorEl={anchorEl}
         keepMounted
         open={Boolean(anchorEl)}
         onClose={handleClose}
       >
-        <StyledMenuItem >
+        <StyledMenuItem onClick={handleClose}>
           <NotificationImportantIcon >
             <NotificationImportantIcon fontSize="small" />
           </NotificationImportantIcon>
           <ListItemText primary="Reminder" />
         </StyledMenuItem>
-        <StyledMenuItem>
+
+        <StyledMenuItem onClick={handleClose}>
           <PriorityHighIcon>
             <DraftsIcon fontSize="small" />
           </PriorityHighIcon>
           <ListItemText primary="Appointment" />
         </StyledMenuItem>
-        <StyledMenuItem>
+
+        <StyledMenuItem onClick={handleClose}>
           <GroupIcon>
             <InboxIcon fontSize="small" />
           </GroupIcon>
           <ListItemText primary="Meeting" />
         </StyledMenuItem>
-        <StyledMenuItem>
+        <StyledMenuItem onClick={handleClose}>
           <SentimentSatisfiedAltIcon>
             <InboxIcon fontSize="small" />
           </SentimentSatisfiedAltIcon>
           <ListItemText primary="Personal" />
         </StyledMenuItem>
-        <StyledMenuItem>
+        <StyledMenuItem onClick={handleClose}>
           <WorkIcon>
             <InboxIcon fontSize="small" />
           </WorkIcon>
           <ListItemText primary="Work" />
         </StyledMenuItem>
-        <StyledMenuItem>
+        <StyledMenuItem onClick={handleClose}>
           <FlightIcon>
             <InboxIcon fontSize="small" />
           </FlightIcon>
